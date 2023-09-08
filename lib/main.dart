@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
+import 'package:ygonotebook/app/init.dart';
 import 'package:ygonotebook/model/ygo_card.dart';
+import 'package:ygonotebook/service/card_service.dart';
 import 'package:ygonotebook/util/db_util.dart';
 import 'package:ygonotebook/util/image_util.dart';
 
@@ -41,33 +43,41 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
 
   List<String> dbContents = [];
+  File? file;
+  final CardService _cardService = CardService();
 
-  void _initDb() {
-    copyDb2DocDir();
+  Future<void> _initDb() async {
+    return copyDb2DocDir();
   }
 
-  void _initPics() {
-    copyZipImage2DocDir();
+  Future<void> _initPics() async {
+    return copyZipImage2DocDir();
   }
 
   Future<void> _queryDb() async {
-    final tables = await cardsDbTables();
-    dbContents..clear()..addAll(tables.rows.map((e) => "$e"));
+    // final tables = await cardsDbTables();
+    // dbContents..clear()..addAll(tables.rows.map((e) => "$e"));
+    // setState(() {});
+  }
+
+  Future<void> _queryCard10000() async {
+    final card = await _cardService.getCardById(10000);
+    if (card == null) {
+      return;
+    }
+    dbContents..clear()..addAll([card.toString()]);
+    file = File(card.localImageUrl);
     setState(() {});
   }
 
-  Future<void> _queryCard1() async {
-    final cards = await queryCard1();
-    dbContents..clear()..addAll(YGOCard.fromResultSet(cards).map((e) => e.toString()));
-    setState(() {});
-  }
+  bool loading = false;
 
-  File? file;
+  Future<void>? _initApp;
 
-  Future<void> _loadPic1() async {
-    final imageDir = await getPictureDir();
-    file = File(join(imageDir, "1.jpeg"));
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    _initApp = init();
   }
 
   @override
@@ -77,32 +87,54 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ...dbContents.map((e) => Text(
-              e,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),),
-            if (file != null)
-              Image.file(file!),
-            CupertinoButton(child: const Text("query db"), onPressed: () {
-              _queryDb();
-            }),
-            CupertinoButton(child: const Text("query card1"), onPressed: () {
-              _queryCard1();
-            }),
-            CupertinoButton(child: const Text("load pic1"), onPressed: () {
-              _loadPic1();
-            }),
-          ],
-        ),
+      body: FutureBuilder(
+        future: _initApp,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Text("loading..");
+          }
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    ...dbContents.map((e) => Text(
+                      e,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),),
+                    if (file != null)
+                      Image.file(file!),
+                    CupertinoButton(child: const Text("query db"), onPressed: () {
+                      _queryDb();
+                    }),
+                    CupertinoButton(child: const Text("query card1"), onPressed: () {
+                      _queryCard10000();
+                    }),
+                  ],
+                ),
+              ),
+              if (loading)
+                const Center(
+                  child: Text(
+                    "loading..."
+                  ),
+                )
+            ],
+          );
+        }
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _initDb();
-          _initPics();
+        onPressed: () async {
+          setState(() {
+            loading = true;
+          });
+          await _initDb();
+          await _initPics();
+          setState(() {
+            loading = false;
+          });
         },
         tooltip: 'init db',
         child: const Icon(Icons.downloading),

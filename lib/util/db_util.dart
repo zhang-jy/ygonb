@@ -21,16 +21,3 @@ Future<Database> openDb() async {
   final db = sqlite3.open(databasePath);
   return db;
 }
-
-Future<ResultSet> cardsDbTables() async {
-  final db = await openDb();
-  return db.select('SELECT * FROM sqlite_master ORDER BY name;');
-}
-
-Future<ResultSet> queryCard1() async {
-  final db = await openDb();
-  return db.select('SELECT d.id, ot, atk, def, level, name, desc '
-      'FROM datas AS d, texts AS t '
-      'where d.id = t.id '
-      'LIMIT 1;');
-}
