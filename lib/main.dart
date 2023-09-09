@@ -55,9 +55,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _queryDb() async {
-    // final tables = await cardsDbTables();
-    // dbContents..clear()..addAll(tables.rows.map((e) => "$e"));
-    // setState(() {});
+    final columnNames = await _cardService.getCardsTableColumnName();
+    dbContents..clear()..addAll(columnNames);
+    setState(() {});
+  }
+
+  Future<void> _queryCard10000AllColumn() async {
+    final columnNames = await _cardService.queryCardAllColumnById(10000);
+    if (columnNames == null || columnNames.isEmpty) {
+      return;
+    }
+    dbContents..clear()..add(columnNames);
+    setState(() {});
   }
 
   Future<void> _queryCard10000() async {
@@ -111,6 +120,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     }),
                     CupertinoButton(child: const Text("query card1"), onPressed: () {
                       _queryCard10000();
+                    }),
+                    CupertinoButton(child: const Text("query card1 all"), onPressed: () {
+                      _queryCard10000AllColumn();
                     }),
                   ],
                 ),

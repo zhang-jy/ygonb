@@ -5,6 +5,16 @@ class CardService {
 
   final _cardDao = CardDao();
 
+  Future<List<String>> getCardsTableColumnName() async {
+    final querySet = await _cardDao.showCardsDbTables();
+    return querySet.rows.map((e) => "$e").toList();
+  }
+
+  Future<String?> queryCardAllColumnById(int id) async {
+    final querySet = await _cardDao.queryCardAllColumnById(id);
+    return querySet.firstOrNull?.values.map((e) => "{$e}").join(",");
+  }
+
   Future<YGOCard?> getCardById(int id) async {
     final querySet = await _cardDao.queryCardById(id);
     return YGOCard.fromResultSet(querySet).firstOrNull;

@@ -6,8 +6,8 @@ import 'package:ygonotebook/app/init.dart';
 class YGOCard {
   final int id;
   final int ot;
-  final int atk;
-  final int def;
+  final int _atk;
+  final int _def;
   final int level;
   final String name;
   final String desc;
@@ -17,9 +17,24 @@ class YGOCard {
   String get localImageUrl => (_localImageUrl == null || _localImageUrl!.isEmpty) ? join(localImagePath, "177x254", "$id.jpg") : _localImageUrl!;
   String get networkImageUrl => _networkImageUrl ?? "";
 
-  YGOCard(this.id, this.ot, this.atk, this.def, this.level, this.name, this.desc,
+  String get atk {
+    if (_atk == -2) {
+      return "?";
+    }
+    return "$_atk";
+  }
+
+  String get def {
+    if (_def == -2) {
+      return "?";
+    }
+    return "$_def";
+  }
+
+  YGOCard(this.id, this.ot, int atk, int def, this.level, this.name, this.desc,
       {String? localImageUrl, String? networkImageUrl})
-      : _localImageUrl = localImageUrl, _networkImageUrl = networkImageUrl;
+      : _localImageUrl = localImageUrl, _networkImageUrl = networkImageUrl,
+        _atk = atk, _def = def;
 
   factory YGOCard.fromRow(sqlite3.Row row) {
     return YGOCard(row["id"], row["ot"], row["atk"], row["def"], row["level"],
