@@ -1,32 +1,54 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:ygonotebook/app/init.dart';
-import 'package:ygonotebook/model/ygo_card.dart';
 import 'package:ygonotebook/service/card_service.dart';
-import 'package:ygonotebook/util/db_util.dart';
-import 'package:ygonotebook/util/image_util.dart';
+import 'package:ygonotebook/util/init_util.dart';
+import 'package:ygonotebook/widget/debug_float_entry_widget.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  final GlobalKey<NavigatorState> navKey = GlobalKey<NavigatorState>();
+  // final GlobalKey innerKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navKey,
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      builder: (ctx, child) {
+        return Overlay(
+          initialEntries: [
+            OverlayEntry(
+              builder: (context) {
+                // return Container(
+                //   key: innerKey,
+                //   child: child ?? const SizedBox(),
+                // );
+                return child ?? const SizedBox();
+              },
+            ),
+            DebugOverlayManager.getOverLay(onDoubleClick: () {
+              // final navState = innerKey.currentContext?.findAncestorStateOfType<NavigatorState>();
+              if (navKey.currentContext == null) {
+                return;
+              }
+              showDebugActionSheet(navKey.currentContext!, navState: null);//navKey.currentState);
+              // showDebugActionSheet(ctx, navState: navState);
+            }),
+          ],
+        );
+      },
     );
   }
 }
@@ -42,41 +64,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  List<String> dbContents = [];
-  File? file;
   final CardService _cardService = CardService();
 
-  Future<void> _initDb() async {
-    return copyDb2DocDir();
-  }
-
-  Future<void> _initPics() async {
-    return copyZipImage2DocDir();
-  }
-
-  Future<void> _queryDb() async {
-    final columnNames = await _cardService.getCardsTableColumnName();
-    dbContents..clear()..addAll(columnNames);
-    setState(() {});
-  }
-
-  Future<void> _queryCard10000AllColumn() async {
-    final columnNames = await _cardService.queryCardAllColumnById(10000);
-    if (columnNames == null || columnNames.isEmpty) {
-      return;
+  Future<void> _asyncInit() async {
+    setState(() {
+      loading = true;
+    });
+    // await computeIsolate(asyncInitRunner);
+    await asyncInitRunner();
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
     }
-    dbContents..clear()..add(columnNames);
-    setState(() {});
-  }
-
-  Future<void> _queryCard10000() async {
-    final card = await _cardService.getCardById(10000);
-    if (card == null) {
-      return;
-    }
-    dbContents..clear()..addAll([card.toString()]);
-    file = File(card.localImageUrl);
-    setState(() {});
   }
 
   bool loading = false;
@@ -90,6 +90,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    DebugOverlayManager.remove();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -99,9 +105,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: FutureBuilder(
         future: _initApp,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Text("loading..");
-          }
+          // if (snapshot.connectionState != ConnectionState.done) {
+          //   return const Text("loading..");
+          // }
           return Stack(
             children: [
               SingleChildScrollView(
@@ -109,21 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    ...dbContents.map((e) => Text(
-                      e,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),),
-                    if (file != null)
-                      Image.file(file!),
-                    CupertinoButton(child: const Text("query db"), onPressed: () {
-                      _queryDb();
-                    }),
-                    CupertinoButton(child: const Text("query card1"), onPressed: () {
-                      _queryCard10000();
-                    }),
-                    CupertinoButton(child: const Text("query card1 all"), onPressed: () {
-                      _queryCard10000AllColumn();
-                    }),
+                    // FutureBuilder(
+                    //   future: _cardService.getCardById(10000),
+                    //   builder: (context, snap) {
+                    //     return CardItemWidget(
+                    //       card: snap.data
+                    //     );
+                    //   }
+                    // )
                   ],
                 ),
               ),
@@ -139,14 +138,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          setState(() {
-            loading = true;
-          });
-          await _initDb();
-          await _initPics();
-          setState(() {
-            loading = false;
-          });
+          // print("click");
+          _asyncInit();
         },
         tooltip: 'init db',
         child: const Icon(Icons.downloading),
