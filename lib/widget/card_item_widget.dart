@@ -41,16 +41,16 @@ class CardItemWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
-                        "title",
-                        style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
+                        card?.name ?? "",
+                        style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500),
                       ),
                     ),
                     Expanded(
                       child: AdaptConstraintText(
-                        text: "desc " * 100,
+                        text: card?.desc ?? "",
                         style: TextStyle(color: Colors.grey.shade700, fontSize: 12.0),
                       ),
                     )

@@ -35,4 +35,18 @@ class CardDao {
         'where name LIKE ? AND d.id = t.id '
         'LIMIT 1;', ['%$queryText%']);
   }
+
+  /// 通过名字模糊查询卡片
+  Future<ResultSet> queryCardPager(int pageSize, int start, {String? queryText}) async {
+    final db = await openDb();
+    final whereCondition = queryText == null || queryText.isEmpty
+        ? 'where d.id = t.id '
+        : 'where name LIKE ? AND d.id = t.id ';
+    final args = queryText == null || queryText.isEmpty
+        ? ['$pageSize', '$start']
+        : ['%$queryText%', '$pageSize', '$start'];
+    return db.select('SELECT d.id, ot, atk, def, level, name, desc '
+        'FROM datas AS d, texts AS t $whereCondition'
+        'LIMIT ? OFFSET ?;', args);
+  }
 }

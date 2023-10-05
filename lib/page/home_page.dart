@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:ygonotebook/service/card_service.dart';
 import 'package:ygonotebook/widget/card_item_widget.dart';
 
 const ratio = 177/254;
@@ -70,25 +71,21 @@ class _HomePageState extends State<HomePage> {
         title: const Text("搜索"),
       ),
       persistentFooterAlignment: AlignmentDirectional.centerStart,
-      bottomNavigationBar: InkWell(
-        highlightColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        child: BottomNavigationBar(
-          currentIndex: tabIndex,
-          onTap: (index) {
-            tabIndex = index;
-            setState(() {});
-          },
-          selectedLabelStyle: const TextStyle(color: Colors.blueAccent),
-          unselectedLabelStyle: const TextStyle(color: Colors.black),
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          type: BottomNavigationBarType.fixed,
-          enableFeedback: false,
-          items: _tabItems,
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: tabIndex,
+        onTap: (index) {
+          tabIndex = index;
+          setState(() {});
+        },
+        selectedLabelStyle: const TextStyle(color: Colors.blueAccent),
+        unselectedLabelStyle: const TextStyle(color: Colors.black),
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        enableFeedback: false,
+        items: _tabItems,
       ),
       body: IndexedStack(
         index: tabIndex,
@@ -112,15 +109,23 @@ class Page1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      itemBuilder: (ctx, index) {
-        return const CardItemWidget();
-      },
-      itemCount: 20,
-      separatorBuilder: (ctx, index) {
-        return Container(height: 10,);
-      },
+    return FutureBuilder(
+      future: CardService().getCardsPager(),
+      builder: (ctx, snapShot) {
+        if (snapShot.connectionState == ConnectionState.done) {
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            itemBuilder: (ctx, index) {
+              return CardItemWidget(card: snapShot.data![index],);
+            },
+            itemCount: snapShot.data!.length,
+            separatorBuilder: (ctx, index) {
+              return Container(height: 10,);
+            },
+          );
+        }
+        return const Center(child: Text("loading..."));
+      }
     );
   }
 }
