@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyrefresh/easy_refresh.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ygonotebook/service/card_service.dart';
+import 'package:ygonotebook/view_model/card_list_vm.dart';
 import 'package:ygonotebook/widget/card_item_widget.dart';
 
 const ratio = 177/254;
@@ -109,24 +112,121 @@ class Page1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: CardService().getCardsPager(),
-      builder: (ctx, snapShot) {
-        if (snapShot.connectionState == ConnectionState.done) {
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            itemBuilder: (ctx, index) {
-              return CardItemWidget(card: snapShot.data![index],);
-            },
-            itemCount: snapShot.data!.length,
-            separatorBuilder: (ctx, index) {
-              return Container(height: 10,);
-            },
-          );
-        }
-        return const Center(child: Text("loading..."));
-      }
+    return Consumer(
+      builder: (BuildContext context, WidgetRef ref, Widget? child) {
+        final listState = ref.watch(cardListProvider);
+        return listState.when(
+          loading: () {
+            return const Center(child: Text("loading.."));
+          },
+          empty: () {
+            return const Text(
+              'empty',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.normal,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            );
+          },
+          ready: (data) {
+            return EasyRefresh(
+              controller: ref.watch(cardListProvider.notifier).refreshController,
+              enableControlFinishRefresh: true,
+              enableControlFinishLoad: true,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                itemBuilder: (ctx, index) {
+                  return CardItemWidget(card: data[index],);
+                },
+                itemCount: data!.length,
+                separatorBuilder: (ctx, index) {
+                  return Container(height: 10,);
+                },
+              ),
+              onRefresh: () async {
+                ref.watch(cardListProvider.notifier).refreshData(
+                    fnToast: ((error, {e}) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                              error,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                            )),
+                      );
+                    }));
+              },
+              onLoad: () async {
+                ref.watch(cardListProvider.notifier).loadMore(
+                    fnToast: ((error, {e}) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                              error,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                            )),
+                      );
+                    }));
+              },
+            );
+          },
+          error: (error) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(error?.errorMsg ?? "None"),
+                  ),
+                  TextButton(
+                    child: const Text("重试下"),
+                    onPressed: () {
+                      ref.invalidate(cardListProvider);
+                    },
+                  ),
+                ],
+              ),
+            );
+          }
+        );
+      },
     );
+    // return FutureBuilder(
+    //   future: CardService().getCardsPager(20, 0),
+    //   builder: (ctx, snapShot) {
+    //     if (snapShot.connectionState == ConnectionState.done) {
+    //       return ListView.separated(
+    //         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    //         itemBuilder: (ctx, index) {
+    //           return CardItemWidget(card: snapShot.data![index],);
+    //         },
+    //         itemCount: snapShot.data!.length,
+    //         separatorBuilder: (ctx, index) {
+    //           return Container(height: 10,);
+    //         },
+    //       );
+    //     }
+    //     return const Center(child: Text("loading..."));
+    //   }
+    // );
   }
 }
 

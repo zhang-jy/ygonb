@@ -25,8 +25,8 @@ class CardService {
     return YGOCard.fromResultSet(querySet);
   }
 
-  Future<List<YGOCard>> getCardsPager() async {
-    final querySet = await _cardDao.queryCardPager(20, 0);
+  Future<List<YGOCard>> getCardsPager(int pageSize, int pageStart) async {
+    final querySet = await _cardDao.queryCardPager(pageSize, pageStart);
     return YGOCard.fromResultSet(querySet);
   }
 }
